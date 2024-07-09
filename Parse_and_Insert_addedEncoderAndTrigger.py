@@ -23,21 +23,21 @@ Supervised by Professor Sean Brennan
 To do list:
 1. (done) make the insert of base_stations and vehicle just executes once.(done use conflict on)
 2. (DONE) similar with setBaseStation, we need a setVehicle method,
-3. add a class method in database to insert multiple rows data. and then modify sensors method, and try to select sensor id before parsing 
-4. add position variance to parseGarminGP
+3. add a class method in database to insert multiple rows data (Sadie is working on it). and then modify sensors method, and try to select sensor id before parsing (DONE)
+4. (DONE) add position variance to parseGarminGP
 5. it seems that the first line was missed when using bulk insert
 6. (done)  check the source of adis imu data covariance,datasheet or? http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Imu.html(done)
 7. modify adis_code.cpp where covariacne bwt accelaration and angular velocity is reverse. 
 8. (done) and put the parameters in /home/brennan/Documents/Liming/mapping_van_data/src/adis_16407/include/adis_16407/adis_structures.h
 into adis_16407 parameters table.(done)
-9. add parameters table for each sensor, store parameters including units, variances, and so on 
+9. add parameters table for each sensor, store parameters including units, variances, and so on. (Done Check in the updated database Schema)
 10. think about how to orginaize the topic with two sensors, eg, encoder and steering angle
 11. (done) conflict on setBaseStation and vehicel id,and the repeat issue of trips
-12. add temperature, pressure and magnetic into adis_imu
-13. for laser, change the text data type to array
+12. (DONE) add temperature, pressure and magnetic into adis_imu (Include these values in the SQL)
+13. (DONE) for laser, change the text data type to array (Need to make changes in the DB Schema)
 14. improve the process when you re-parse the data. error capture in database.py bulk insert
 15. debug the delete and reinsert part
-16. fix correctTimeTrigger() method
+16. fix correctTimeTrigger() method - Check the comments
 17. add parse function for encoder - done
 18. add parse function for trigger - done
 This script takes one argument: the folder path which contains all the bag files you want to parse
@@ -537,6 +537,8 @@ class Parse:
 		# 	Author: Liming Gao
 		# 	Date: 02/05/2020
 		#
+		#	Added position variance to the parseGarminGPS
+		#	Update the Database Schema to accommoodate the new variance fields.
 		================================================================================
 
 	'''
@@ -552,6 +554,12 @@ class Parse:
 			self.printProgress(count + 1, number_of_messages, prefix='Progress:', suffix='Complete', decimals=1, length=50)
 
 			time = repr(msg.header.stamp.secs + msg.header.stamp.nsecs * 10 ** (-9))
+
+			# Assuming position_covariance is an array [lat_var, lon_var, alt_var]
+			latitude_variance = msg.position_covariance[0]  # Placeholder index for latitude variance
+			longitude_variance = msg.position_covariance[1]  # Placeholder index for longitude variance
+			altitude_variance = msg.position_covariance[2]  # Placeholder index for altitude variance
+
 
 			file.write(str(sensor_id))
 			file.write(',')
@@ -602,10 +610,8 @@ class Parse:
 			if self.replace_all is True or user_input == 'y':
 
 				status = self.db.delete(table='garmin_gps', using=None, where=['bag_files_id='+str(bag_file_id)])
-				self.db.bulk_insert(table='garmin_gps', fields=['sensors_id', 'bag_files_id', 'timestamp', 'seconds', 'nanoseconds', 'time', 'status', 'service','latitude', 'longitude', 'altitude'], file_name=output_file_name)
-
+				self.db.bulk_insert(table='garmin_gps', fields=['sensors_id', 'bag_files_id', 'timestamp', 'seconds', 'nanoseconds', 'time', 'status', 'service','latitude', 'longitude', 'altitude', 'latitude_variance', 'longitude_variance', 'altitude_variance'], file_name=output_file_name)
 			else:
-
 				return
 
 		'''
@@ -996,6 +1002,12 @@ class Parse:
 			file.write(str(msg.angular_velocity.y))
 			file.write(',')
 			file.write(str(msg.angular_velocity.z))
+			file.write(',')
+			file.write(str(msg.temperature))
+			file.write(',')
+			file.write(str(msg.pressure))
+			file.write(',')
+			file.write(str(msg.magnetic_field))
 			file.write('\n')
 
 			count += 1
@@ -1310,9 +1322,9 @@ class Parse:
 			file.write(',')
 			file.write(str(msg.scan_time))
 			file.write(',')
-			# file.write('"' + ' '.join(map(str, msg.ranges)) + '"')  # This removes the leading and lagging parentheses from this message
+			# file.write('ARRAY[' + ','.join(map(str, msg.ranges)) + ']')  # Format ranges as an array
 			# file.write(',')
-			# file.write('"' + ' '.join(map(str, msg.intensities)) + '"')  # This removes the leading and lagging parentheses from this message
+			# file.write('ARRAY[' + ','.join(map(str, msg.intensities)) + ']')  # Format intensities as an array
 			file.write(' '.join(map(str, msg.ranges)))  # This join the element in msg.ranges tuple
 			file.write(',')
 			file.write(' '.join(map(str, msg.intensities)))  # This removes the leading and lagging parentheses from this message
@@ -1749,7 +1761,7 @@ class Parse:
 						values=[vehicle_id, vehicle_name], upseet=True, conflict_on=['id'])
 	
 	'''
-		insert sensors setup info
+		insert sensors setup method info
 
 	'''
 	def setSensor(self,id,product_name):
@@ -1775,6 +1787,16 @@ class Parse:
 			self.connection.rollback()
 			return None
 
+	'''
+		When new sensor is registered in the DB, before you start with data parsing ensure the sensor is registered in the database.
+		sensor_id = setsensor('')
+		if sensor_id is not None:
+			#proceed with data parsing
+		else:
+			#handle the error
+
+	'''
+	
 	'''
 		update table in database, insert geog
 
