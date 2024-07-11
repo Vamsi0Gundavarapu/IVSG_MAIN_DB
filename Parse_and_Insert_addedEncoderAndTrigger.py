@@ -1757,7 +1757,7 @@ class Parse:
 
 	def setVehicle(self, vehicle_id, vehicle_name):
 
-		return.self.db.insert(table= 'vehicles', fields=['id', 'name'],
+		return self.db.insert(table= 'vehicles', fields=['id', 'name'],
 						values=[vehicle_id, vehicle_name], upseet=True, conflict_on=['id'])
 	
 	'''
