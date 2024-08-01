@@ -1,0 +1,72 @@
+Comprehensive Guide to Installing Velodyne Decoder 2.3.0 and Efficiently Parsing and Uploading ROS Bag Files
+
+This walkthrough to install Velodyne_Decoder-2.3.0 only works for Python version 3.10. Any other packages used for the bag_to_csv_py3.py script also need to be installed in Python version 3.10.
+
+Use py -3.10 only if your standard python is not 3.10 otherwise just use py.
+General Steps:
+1.	Open a terminal.
+2.	Check Python version:
+py --version
+
+3.	If Python isn’t installed, install Python version 3.10.
+4.	If Python is installed, make sure it is version 3.10 (download if needed):
+py -0
+ 
+5.	To use Python 3.10:
+py -3.10
+ 
+6.	Check pip version:
+py -3.10 -m pip --version
+
+7.	To install pip:
+py -3.10 -m ensurepip --default-pip
+ 
+8.	To update pip:
+py -3.10 -m pip install --upgrade pip
+ 
+9.	Optional: (error due to setting up build wheels)
+py -3.10 -m pip install --upgrade pip setuptools wheel
+
+Follow these instructions to install Velodyne Decoder version 2.3.0:
+1)  Create a parsing folder consisting of:
+  a)	bag_to_csv_py3.py
+  b)	parseCamera.py
+  c)	parseUtilities.py
+  d)	Velodyne-decoder-2.3.0
+  e)	Bag file to parse
+
+2)	Change directory to this folder in a terminal (on a computer lab desktop open with Visual Studio 2022 - makes things easier):
+cd <path_to_your_folder>
+ 
+3)	Check that the needed libraries are installed:
+py -3.10 -m pip install bagpy opencv-contrib-python
+ 
+4)	To install Velodyne Decoder:
+  a)	Go to: https://pypi.org/project/velodyne-decoder/2.3.0/#files
+  b)	Download the source distribution file.
+  c)	Download the built distribution file.
+
+5)	Extract the source distribution file:
+tar xf velodyne-decoder-2.3.0.tar.gz
+ 
+6)	Install the built distribution file:
+py -3.10 -m pip install velodyne_decoder-2.3.0-cp310-cp310-win_amd64.whl
+ 
+7)	To verify the installation:
+  cd velodyne-decoder-2.3.0
+  mv test_velodyne_decoder.py ..
+  cd ..
+  python test_velodyne_decoder.py
+
+Running the Script:
+1)	Place the script and bag files in the same directory.
+2)	Run the script:
+py -3.10 bag_to_csv_py3.py
+ 
+If you get an error: "ndarray is not C-contiguous" - add the line in the script:
+points = np.ascontiguousarray(points)
+
+Above the line:
+md5_scan = hashlib.md5(points).hexdigest()
+
+Following this walkthrough should help you install the Velodyne Decoder 2.3.0, resolve common issues, and efficiently upload parsed bag files. 
